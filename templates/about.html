@@ -6,19 +6,37 @@
         <h2 class="fw-bold text-success mb-4">About the Project</h2>
         <p>This project aims to deliver a functional, efficient, and impactful solution for automated waste classification using deep learning. Manual waste sorting is slow and prone to error; our system provides a meaningful solution through AI.</p>
 
-        <h4 class="mt-5 mb-3">System Performance</h4>
+        <h4 class="mt-5 mb-3">System Performance & Evaluation</h4>
+        <p class="text-muted">For my Final Year Project, I evaluated the model using standard deep learning metrics to ensure its reliability and accuracy in real-world scenarios.</p>
+
         <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card bg-success text-white text-center p-3 mb-3">
-                    <h3>96.7%</h3>
+            <div class="col-md-6 text-center">
+                <div class="card bg-success text-white p-3 mb-3 shadow-sm border-0">
+                    <h3 class="fw-bold">96.7%</h3>
                     <p class="mb-0">Training Accuracy</p>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card bg-primary text-white text-center p-3 mb-3">
-                    <h3>76.7%</h3>
+            <div class="col-md-6 text-center">
+                <div class="card bg-primary text-white p-3 mb-3 shadow-sm border-0">
+                    <h3 class="fw-bold">76.7%</h3>
                     <p class="mb-0">Validation Accuracy</p>
                 </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <h5 class="fw-bold text-success mb-3"><i class="fas fa-chart-line me-2"></i>Training History</h5>
+                <p class="small text-muted">The graphs below show how the model improved its accuracy and reduced loss over 10 training epochs. The convergence of training and validation lines indicates a stable learning process.</p>
+                <img src="{{ url_for('static', filename='images/training_metrics.png') }}" class="img-fluid rounded border" alt="Training Metrics">
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <h5 class="fw-bold text-success mb-3"><i class="fas fa-th me-2"></i>Confusion Matrix</h5>
+                <p class="small text-muted">A confusion matrix helps us understand which classes the model identifies correctly and where it gets confused. High diagonal values represent correct predictions for each waste category.</p>
+                <img src="{{ url_for('static', filename='images/confusion_matrix.png') }}" class="img-fluid rounded border" alt="Confusion Matrix">
             </div>
         </div>
 

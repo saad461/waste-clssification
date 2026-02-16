@@ -8,6 +8,55 @@
     </div>
 </div>
 
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow border-0 h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Manage Dataset</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Upload new images to the training dataset categories to expand the model's knowledge base.</p>
+                <form action="{{ url_for('upload_dataset') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Select Category</label>
+                        <select class="form-select" name="category" required>
+                            <option value="" selected disabled>Choose category...</option>
+                            {% for class in classes %}
+                            <option value="{{ class }}">{{ class }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Image File</label>
+                        <input type="file" class="form-control" name="file" accept="image/*" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Upload to Dataset</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow border-0 h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">System Overview</h5>
+            </div>
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <div class="row">
+                    <div class="col-6">
+                        <h2 class="fw-bold">{{ logs|length }}</h2>
+                        <p class="text-muted mb-0">Total Logs</p>
+                    </div>
+                    <div class="col-6">
+                        <h2 class="fw-bold">{{ classes|length }}</h2>
+                        <p class="text-muted mb-0">Classes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card shadow border-0">
     <div class="card-header bg-success text-white">
         <h5 class="mb-0">Classification Logs</h5>
