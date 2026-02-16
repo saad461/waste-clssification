@@ -1,0 +1,38 @@
+body {
+    background-color: #f8fdf8;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+.text-success {
+    color: #28a745 !important;
+}
+
+footer {
+    background-color: #fff;
+}
+
+.badge.bg-success {
+    background-color: #28a745 !important;
+}
