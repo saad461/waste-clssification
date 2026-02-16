@@ -61,12 +61,22 @@ To access the admin panel for monitoring and dataset management:
 
 ## 📂 Project Structure
 - `app.py`: The main Flask backend handles routing, database, and model inference.
+- `static/dataset/`: **This is where new images uploaded via the Admin Panel are stored.** They are organized into folders by category (e.g., `static/dataset/Plastic/`).
 - `waste_model.h5`: The trained weights for the CNN model.
 - `templates/`: HTML files for the web interface.
 - `static/`: Contains CSS, images, and uploaded files.
 - `static/dataset/`: Organized folder structure for the training dataset.
 - `requirements.txt`: List of Python libraries required.
 - `test_app.py`: Unit tests for the application.
+
+---
+
+## 🔄 Retraining the Model
+If you upload many new images via the Admin Panel and want to improve the model:
+1. Collect the new images from the `static/dataset/` folder.
+2. Add them to your training dataset in the `waste.ipynb` notebook.
+3. Run the training cells in the notebook to generate a new `waste_model.h5`.
+4. Replace the old `waste_model.h5` in the root directory with your new one.
 
 ---
 
