@@ -1,6 +1,6 @@
 flask
 tensorflow
-pillow
+opencv-python
 flask-sqlalchemy
 flask-wtf
 h5py

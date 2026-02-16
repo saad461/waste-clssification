@@ -6,7 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash
-from PIL import Image
+import cv2
 from datetime import datetime
 
 app = Flask(__name__)
@@ -91,8 +91,10 @@ with app.app_context():
 CLASS_LABELS = ['Cardboard', 'Glass', 'Metal', 'Paper', 'Plastic', 'Organic Material']
 
 def predict_label(img_path):
-    img = Image.open(img_path).convert('RGB')
-    img = img.resize((224, 224))
+    # Using OpenCV as suggested in the FYP Proposal
+    img = cv2.imread(img_path)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.resize(img, (224, 224))
     img_array = np.array(img) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
 
