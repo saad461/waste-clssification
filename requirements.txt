@@ -1,0 +1,9 @@
+flask
+tensorflow
+pillow
+flask-sqlalchemy
+flask-wtf
+h5py
+numpy
+matplotlib
+seaborn

@@ -159,7 +159,35 @@ def admin_dashboard():
         return redirect(url_for('admin'))
 
     logs = Log.query.order_by(Log.timestamp.desc()).all()
-    return render_template('admin.html', logs=logs)
+    return render_template('admin.html', logs=logs, classes=CLASS_LABELS)
+
+@app.route('/admin/upload_dataset', methods=['POST'])
+def upload_dataset():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+
+    if 'file' not in request.files:
+        flash('No file part')
+        return redirect(url_for('admin_dashboard'))
+
+    file = request.files['file']
+    category = request.form.get('category')
+
+    if file.filename == '' or not category:
+        flash('No selected file or category')
+        return redirect(url_for('admin_dashboard'))
+
+    if file and category in CLASS_LABELS:
+        filename = secure_filename(file.filename)
+        # Ensure category folder exists
+        category_path = os.path.join('static/dataset', category)
+        if not os.path.exists(category_path):
+            os.makedirs(category_path)
+
+        file.save(os.path.join(category_path, filename))
+        flash(f'Successfully uploaded {filename} to {category}')
+
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/logout')
 def logout():
