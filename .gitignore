@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+app_output.log
+instance/
+*.db
+static/uploads/*
+!static/uploads/.gitkeep

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h2 class="fw-bold text-success mb-4">About the Project</h2>
+        <p>This project aims to deliver a functional, efficient, and impactful solution for automated waste classification using deep learning. Manual waste sorting is slow and prone to error; our system provides a meaningful solution through AI.</p>
+
+        <h4 class="mt-5 mb-3">System Performance</h4>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card bg-success text-white text-center p-3 mb-3">
+                    <h3>96.7%</h3>
+                    <p class="mb-0">Training Accuracy</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-primary text-white text-center p-3 mb-3">
+                    <h3>76.7%</h3>
+                    <p class="mb-0">Validation Accuracy</p>
+                </div>
+            </div>
+        </div>
+
+        <h4>Methodology</h4>
+        <ul class="list-group list-group-flush mb-4">
+            <li class="list-group-item"><strong>Model:</strong> CNN (MobileNetV2) using Transfer Learning</li>
+            <li class="list-group-item"><strong>Dataset:</strong> TrashNet standard dataset structure</li>
+            <li class="list-group-item"><strong>Optimization:</strong> Adam Optimizer with Categorical Crossentropy</li>
+            <li class="list-group-item"><strong>Preprocessing:</strong> 224x224 Resizing & Normalization</li>
+        </ul>
+
+        <h4>Project Objectives</h4>
+        <p>As per the FYP Proposal, our objectives include:</p>
+        <ul>
+            <li>Designing an automated system for sustainable waste management.</li>
+            <li>Implementing data augmentation to ensure model reliability.</li>
+            <li>Developing a web interface for real-time user interaction.</li>
+            <li>Supporting digital transformation in environmental conservation.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

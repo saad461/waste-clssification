@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row align-items-center py-5">
+    <div class="col-md-6">
+        <h1 class="display-4 fw-bold text-success">Automated Waste Classification System</h1>
+        <p class="lead">Harnessing Deep Learning to make waste management smarter, faster, and more efficient.</p>
+        <p>Our CNN-based model accurately identifies waste categories such as plastic, paper, metal, and organic material to promote better recycling practices.</p>
+        <a href="/classifier" class="btn btn-success btn-lg px-4 gap-3">Get Started</a>
+    </div>
+    <div class="col-md-6 text-center">
+        <i class="fas fa-recycle text-success" style="font-size: 15rem;"></i>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4 text-center">
+        <div class="card border-0 shadow-sm h-100 p-3">
+            <div class="card-body">
+                <i class="fas fa-bolt fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Real-time Analysis</h5>
+                <p class="card-text text-muted">Upload an image and get instant classification results with high confidence.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 text-center">
+        <div class="card border-0 shadow-sm h-100 p-3">
+            <div class="card-body">
+                <i class="fas fa-microchip fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Deep Learning</h5>
+                <p class="card-text text-muted">Powered by MobileNetV2 architecture for efficient and accurate visual feature recognition.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 text-center">
+        <div class="card border-0 shadow-sm h-100 p-3">
+            <div class="card-body">
+                <i class="fas fa-leaf fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Eco-Friendly</h5>
+                <p class="card-text text-muted">Helping environmental organizations reduce contamination in recyclable materials.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
