@@ -102,6 +102,11 @@ def predict_label(img_path):
     class_idx = np.argmax(predictions[0])
     confidence = float(np.max(predictions[0]))
 
+    # Threshold to handle non-waste or unrecognized objects (FYP Proposal: Edge Cases)
+    CONFIDENCE_THRESHOLD = 0.5
+    if confidence < CONFIDENCE_THRESHOLD:
+        return "Unrecognized", confidence
+
     return CLASS_LABELS[class_idx], confidence
 
 @app.route('/')
@@ -197,4 +202,4 @@ def logout():
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=3000)
