@@ -80,7 +80,11 @@
                         <td>
                             <img src="{{ url_for('static', filename='uploads/' + log.filename) }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
                         </td>
-                        <td><span class="badge bg-success">{{ log.prediction }}</span></td>
+                        <td>
+                            <span class="badge {% if log.prediction == 'Unrecognized' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                {{ log.prediction }}
+                            </span>
+                        </td>
                         <td>{{ "%.2f"|format(log.confidence * 100) }}%</td>
                         <td class="text-muted small">{{ log.filename }}</td>
                     </tr>
