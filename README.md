@@ -1,4 +1,4 @@
-# AI Waste Classification System (FYP Project)
+# Waste Classification (FYP Project)
 
 This project is an automated Waste Classification System developed for a Final Year Project (FYP). It uses a Convolutional Neural Network (CNN) based on the **MobileNetV2** architecture to classify waste into six categories: Cardboard, Glass, Metal, Paper, Plastic, and Organic Material.
 
