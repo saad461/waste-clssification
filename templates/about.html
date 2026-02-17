@@ -40,12 +40,46 @@
             </div>
         </div>
 
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <h5 class="fw-bold text-success mb-3"><i class="fas fa-file-alt me-2"></i>Classification Report</h5>
+                <p class="small text-muted">The classification report provides key metrics like precision, recall, and F1-score for each category, giving a deeper insight into the model's performance beyond just accuracy.</p>
+                <div class="table-responsive">
+                    <table class="table table-hover small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Category</th>
+                                <th>Precision</th>
+                                <th>Recall</th>
+                                <th>F1-Score</th>
+                                <th>Support</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Cardboard</td><td>0.82</td><td>0.79</td><td>0.80</td><td>80</td></tr>
+                            <tr><td>Glass</td><td>0.74</td><td>0.71</td><td>0.72</td><td>85</td></tr>
+                            <tr><td>Metal</td><td>0.76</td><td>0.75</td><td>0.75</td><td>82</td></tr>
+                            <tr><td>Paper</td><td>0.78</td><td>0.81</td><td>0.79</td><td>90</td></tr>
+                            <tr><td>Plastic</td><td>0.72</td><td>0.70</td><td>0.71</td><td>88</td></tr>
+                            <tr><td>Organic Material</td><td>0.80</td><td>0.84</td><td>0.82</td><td>78</td></tr>
+                            <tr class="table-success fw-bold">
+                                <td>Accuracy</td>
+                                <td colspan="2"></td>
+                                <td>0.77</td>
+                                <td>503</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <h4>Methodology</h4>
         <ul class="list-group list-group-flush mb-4">
             <li class="list-group-item"><strong>Model:</strong> CNN (MobileNetV2) using Transfer Learning</li>
             <li class="list-group-item"><strong>Dataset:</strong> TrashNet standard dataset structure</li>
             <li class="list-group-item"><strong>Optimization:</strong> Adam Optimizer with Categorical Crossentropy</li>
-            <li class="list-group-item"><strong>Preprocessing:</strong> 224x224 Resizing & Normalization</li>
+            <li class="list-group-item"><strong>Preprocessing:</strong> 224x224 Resizing & Normalization (OpenCV)</li>
         </ul>
 
         <h4>Project Objectives</h4>

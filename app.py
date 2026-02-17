@@ -6,7 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash
-from PIL import Image
+import cv2
 from datetime import datetime
 
 app = Flask(__name__)
@@ -91,14 +91,21 @@ with app.app_context():
 CLASS_LABELS = ['Cardboard', 'Glass', 'Metal', 'Paper', 'Plastic', 'Organic Material']
 
 def predict_label(img_path):
-    img = Image.open(img_path).convert('RGB')
-    img = img.resize((224, 224))
+    # Using OpenCV as suggested in the FYP Proposal
+    img = cv2.imread(img_path)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.resize(img, (224, 224))
     img_array = np.array(img) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
 
     predictions = model.predict(img_array)
     class_idx = np.argmax(predictions[0])
     confidence = float(np.max(predictions[0]))
+
+    # Threshold to handle non-waste or unrecognized objects (FYP Proposal: Edge Cases)
+    CONFIDENCE_THRESHOLD = 0.5
+    if confidence < CONFIDENCE_THRESHOLD:
+        return "Unrecognized", confidence
 
     return CLASS_LABELS[class_idx], confidence
 
@@ -195,4 +202,4 @@ def logout():
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=3000)
