@@ -10,15 +10,18 @@ import cv2
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'dev_key_for_fyp_project_123')
+# Professional Security: Use an environment variable or a secure fallback key
+app.secret_key = os.environ.get('SECRET_KEY', 'waste-classification-fyp-secure-key-78921')
 csrf = CSRFProtect(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///waste_management.db'
+# Ensure the database is stored in the project root for easier access
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'waste_management.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
 db = SQLAlchemy(app)
 
-# Database Models (re-defined here for simplicity)
+# Database Models
 class Log(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(100), nullable=False)
@@ -34,16 +37,34 @@ class User(db.Model):
 # Load the model robustly
 def load_waste_model():
     """
-    Reconstructs the CNN model architecture and loads trained weights.
-    A manual weight-loading strategy is used because direct h5 loading
-    can be unreliable across different Keras/TensorFlow versions (specifically Keras 2 to 3).
+    Loads the trained CNN model.
+    Attempts standard loading first, falls back to manual reconstruction for cross-version compatibility.
     """
-    # 1. Rebuild architecture as defined in the training notebook
+    model_path = 'waste_model.h5'
+
+    if not os.path.exists(model_path):
+        print(f"Warning: {model_path} not found. Running with an untrained model.")
+        return reconstruct_model()
+
+    # Strategy 1: Attempt standard Keras loading
+    try:
+        model = tf.keras.models.load_model(model_path)
+        print("Successfully loaded model using standard Keras loading.")
+        return model
+    except Exception as e:
+        print(f"Standard loading failed ({e}). Attempting manual reconstruction...")
+
+    # Strategy 2: Manual reconstruction (Fallback for Keras 2/3 compatibility)
+    return reconstruct_model(model_path)
+
+def reconstruct_model(weights_path=None):
+    # Rebuild architecture as defined in the training notebook
     base_model = tf.keras.applications.MobileNetV2(
         input_shape=(224, 224, 3),
         include_top=False,
-        weights='imagenet'  # Base model remains frozen with ImageNet weights
+        weights='imagenet'
     )
+    base_model.trainable = False
 
     model = tf.keras.models.Sequential([
         base_model,
@@ -52,12 +73,10 @@ def load_waste_model():
         tf.keras.layers.Dense(6, activation='softmax')
     ])
 
-    # 2. Manually load custom trained weights for the top layers from h5 file
-    model_path = 'waste_model.h5'
-    if os.path.exists(model_path):
+    if weights_path:
         try:
             import h5py
-            with h5py.File(model_path, 'r') as f:
+            with h5py.File(weights_path, 'r') as f:
                 # Target the specific weight paths found in the H5 structure
                 d1_k = f['model_weights/dense/sequential/dense/kernel'][:]
                 d1_b = f['model_weights/dense/sequential/dense/bias'][:]
@@ -66,11 +85,9 @@ def load_waste_model():
                 d2_k = f['model_weights/dense_1/sequential/dense_1/kernel'][:]
                 d2_b = f['model_weights/dense_1/sequential/dense_1/bias'][:]
                 model.layers[3].set_weights([d2_k, d2_b])
-            print("Successfully loaded trained top-layer weights.")
+            print("Successfully loaded trained top-layer weights via reconstruction.")
         except Exception as e:
-            print(f"Warning: Could not load custom weights ({e}). Using default initialization.")
-    else:
-        print(f"Warning: {model_path} not found. Running with default weights.")
+            print(f"Warning: Could not load weights manually ({e}).")
 
     return model
 
