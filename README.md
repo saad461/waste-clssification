@@ -42,7 +42,14 @@ Install all necessary Python libraries using the provided `requirements.txt` fil
 pip install -r requirements.txt
 ```
 
-### 5. Run the Application
+### 5. Initialize the Database
+Before running the app for the first time, you should initialize the database to create the tables and the default admin account:
+```bash
+python init_db.py
+```
+This will create a `waste_management.db` file in your project directory.
+
+### 6. Run the Application
 Start the Flask development server:
 ```bash
 python app.py
@@ -55,12 +62,21 @@ The application will be available at: **`http://127.0.0.1:5000`**
 To access the admin panel for monitoring and dataset management:
 - **URL:** `http://127.0.0.1:5000/admin`
 - **Username:** `admin`
-- **Password:** `admin123`
+- **Password:** `admin123` (You can change this in `init_db.py` before setup)
+
+---
+
+## 🛡️ Security Configuration
+For a production or final submission, you should change the `SECRET_KEY` in `app.py`.
+- Open `app.py` and find the line: `app.secret_key = os.environ.get('SECRET_KEY', '...')`.
+- Change the fallback string to any long random sequence of characters.
 
 ---
 
 ## 📂 Project Structure
 - `app.py`: The main Flask backend handles routing, database, and model inference.
+- `init_db.py`: Database setup script to create tables and admin user.
+- `waste_management.db`: The SQLite database file (appears after running `init_db.py`).
 - `static/dataset/`: **This is where new images uploaded via the Admin Panel are stored.** They are organized into folders by category (e.g., `static/dataset/Plastic/`).
 - `waste_model.h5`: The trained weights for the CNN model.
 - `templates/`: HTML files for the web interface.
