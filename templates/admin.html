@@ -70,6 +70,8 @@
                         <th>Image</th>
                         <th>Prediction</th>
                         <th>Confidence</th>
+                        <th>Status</th>
+                        <th>Feedback</th>
                         <th>File Name</th>
                     </tr>
                 </thead>
@@ -86,6 +88,21 @@
                             </span>
                         </td>
                         <td>{{ "%.2f"|format(log.confidence * 100) }}%</td>
+                        <td>
+                            {% if log.feedback == 'Correct' %}
+                                <span class="badge bg-success">Verified Correct</span>
+                            {% elif log.feedback == 'Incorrect' %}
+                                <span class="badge bg-danger">Verified Incorrect</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Pending Verification</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('admin_feedback', log_id=log.id, value='Correct') }}" class="btn btn-outline-success {% if log.feedback == 'Correct' %}active{% endif %}">Correct</a>
+                                <a href="{{ url_for('admin_feedback', log_id=log.id, value='Incorrect') }}" class="btn btn-outline-danger {% if log.feedback == 'Incorrect' %}active{% endif %}">Incorrect</a>
+                            </div>
+                        </td>
                         <td class="text-muted small">{{ log.filename }}</td>
                     </tr>
                     {% endfor %}

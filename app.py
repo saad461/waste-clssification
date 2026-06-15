@@ -18,6 +18,11 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'waste_management.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 db = SQLAlchemy(app)
 
@@ -27,6 +32,7 @@ class Log(db.Model):
     filename = db.Column(db.String(100), nullable=False)
     prediction = db.Column(db.String(50), nullable=False)
     confidence = db.Column(db.Float, nullable=False)
+    feedback = db.Column(db.String(20), nullable=True) # 'Correct', 'Incorrect', or None
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 class User(db.Model):
@@ -104,8 +110,8 @@ with app.app_context():
         db.session.add(admin_user)
         db.session.commit()
 
-# Mapping classes (Assuming alphabetical order from TrashNet/Keras flow_from_directory)
-CLASS_LABELS = ['Cardboard', 'Glass', 'Metal', 'Paper', 'Plastic', 'Organic Material']
+# Mapping classes (Alphabetical order from TrashNet/Keras flow_from_directory)
+CLASS_LABELS = ['Cardboard', 'Glass', 'Metal', 'Paper', 'Plastic', 'Trash']
 
 def predict_label(img_path):
     # Using OpenCV as suggested in the FYP Proposal
@@ -140,6 +146,11 @@ def classifier():
         if file.filename == '':
             flash('No selected file')
             return redirect(request.url)
+
+        if not allowed_file(file.filename):
+            flash('Invalid file type. Please upload PNG, JPG, or JPEG images.')
+            return redirect(request.url)
+
         if file:
             # Add timestamp to filename to avoid collisions
             original_filename = secure_filename(file.filename)
@@ -188,6 +199,19 @@ def admin_dashboard():
     logs = Log.query.order_by(Log.timestamp.desc()).all()
     return render_template('admin.html', logs=logs, classes=CLASS_LABELS)
 
+@app.route('/admin/feedback/<int:log_id>/<string:value>')
+def admin_feedback(log_id, value):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+
+    log = Log.query.get_or_404(log_id)
+    if value in ['Correct', 'Incorrect']:
+        log.feedback = value
+        db.session.commit()
+        flash(f'Feedback updated for log #{log_id}')
+
+    return redirect(url_for('admin_dashboard'))
+
 @app.route('/admin/upload_dataset', methods=['POST'])
 def upload_dataset():
     if not session.get('logged_in'):
@@ -202,6 +226,10 @@ def upload_dataset():
 
     if file.filename == '' or not category:
         flash('No selected file or category')
+        return redirect(url_for('admin_dashboard'))
+
+    if not allowed_file(file.filename):
+        flash('Invalid file type. Please upload PNG, JPG, or JPEG images.')
         return redirect(url_for('admin_dashboard'))
 
     if file and category in CLASS_LABELS:
