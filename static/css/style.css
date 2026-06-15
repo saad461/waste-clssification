@@ -1,6 +1,24 @@
+:root {
+    --bg-color: #f8fdf8;
+    --card-bg: #ffffff;
+    --text-color: #212529;
+    --footer-bg: #ffffff;
+    --border-color: #dee2e6;
+}
+
+body.dark-mode {
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --text-color: #f8f9fa;
+    --footer-bg: #1e1e1e;
+    --border-color: #333333;
+}
+
 body {
-    background-color: #f8fdf8;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: background-color 0.3s, color 0.3s;
 }
 
 .navbar-brand {
@@ -8,7 +26,10 @@ body {
 }
 
 .card {
-    transition: transform 0.2s;
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+    transition: transform 0.2s, background-color 0.3s;
 }
 
 .card:hover {
@@ -30,9 +51,70 @@ body {
 }
 
 footer {
-    background-color: #fff;
+    background-color: var(--footer-bg);
+    border-color: var(--border-color) !important;
 }
 
 .badge.bg-success {
     background-color: #28a745 !important;
+}
+
+/* Dark mode overrides for Bootstrap */
+body.dark-mode .bg-light {
+    background-color: #2d2d2d !important;
+}
+
+body.dark-mode .text-muted {
+    color: #adb5bd !important;
+}
+
+body.dark-mode .table {
+    color: #f8f9fa;
+    border-color: #333333;
+}
+
+body.dark-mode .table-light {
+    background-color: #2d2d2d;
+    color: #f8f9fa;
+}
+
+body.dark-mode .list-group-item {
+    background-color: #1e1e1e;
+    color: #f8f9fa;
+    border-color: #333333;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+    background-color: #2d2d2d;
+    color: #f8f9fa;
+    border-color: #444444;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+    background-color: #333333;
+    color: #ffffff;
+}
+
+body.dark-mode .modal-content {
+    background-color: #1e1e1e;
+    color: #f8f9fa;
+}
+
+/* Classifier enhancements */
+#dropzone {
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+#dropzone:hover {
+    border-color: #28a745 !important;
+}
+
+body.dark-mode #dropzone {
+    background-color: #252525 !important;
+}
+
+body.dark-mode .result-section {
+    background-color: #252525 !important;
 }

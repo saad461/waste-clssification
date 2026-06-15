@@ -39,27 +39,19 @@
     <div class="col-md-6">
         <div class="card shadow border-0 h-100">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">System Overview</h5>
+                <h5 class="mb-0">Waste Distribution</h5>
             </div>
-            <div class="card-body text-center d-flex flex-column justify-content-center">
-                <div class="row">
-                    <div class="col-6">
-                        <h2 class="fw-bold">{{ logs|length }}</h2>
-                        <p class="text-muted mb-0">Total Logs</p>
-                    </div>
-                    <div class="col-6">
-                        <h2 class="fw-bold">{{ classes|length }}</h2>
-                        <p class="text-muted mb-0">Classes</p>
-                    </div>
-                </div>
+            <div class="card-body">
+                <canvas id="wasteChart"></canvas>
             </div>
         </div>
     </div>
 </div>
 
 <div class="card shadow border-0">
-    <div class="card-header bg-success text-white">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Classification Logs</h5>
+        <a href="{{ url_for('export_csv') }}" class="btn btn-light btn-sm"><i class="fas fa-file-csv me-1"></i> Export to CSV</a>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -70,6 +62,8 @@
                         <th>Image</th>
                         <th>Prediction</th>
                         <th>Confidence</th>
+                        <th>Status</th>
+                        <th>Feedback</th>
                         <th>File Name</th>
                     </tr>
                 </thead>
@@ -86,6 +80,21 @@
                             </span>
                         </td>
                         <td>{{ "%.2f"|format(log.confidence * 100) }}%</td>
+                        <td>
+                            {% if log.feedback == 'Correct' %}
+                                <span class="badge bg-success">Verified Correct</span>
+                            {% elif log.feedback == 'Incorrect' %}
+                                <span class="badge bg-danger">Verified Incorrect</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Pending Verification</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('admin_feedback', log_id=log.id, value='Correct') }}" class="btn btn-outline-success {% if log.feedback == 'Correct' %}active{% endif %}">Correct</a>
+                                <a href="{{ url_for('admin_feedback', log_id=log.id, value='Incorrect') }}" class="btn btn-outline-danger {% if log.feedback == 'Incorrect' %}active{% endif %}">Incorrect</a>
+                            </div>
+                        </td>
                         <td class="text-muted small">{{ log.filename }}</td>
                     </tr>
                     {% endfor %}
@@ -94,4 +103,40 @@
         </div>
     </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('wasteChart').getContext('2d');
+
+    // Count occurrences of each prediction
+    const logData = {{ logs_json|tojson }};
+    const counts = {};
+    logData.forEach(log => {
+        counts[log.prediction] = (counts[log.prediction] || 0) + 1;
+    });
+
+    const labels = Object.keys(counts);
+    const data = Object.values(counts);
+
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: [
+                    '#2ecc71', '#3498db', '#9b59b6', '#f1c40f', '#e67e22', '#e74c3c'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
 {% endblock %}

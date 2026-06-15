@@ -8,6 +8,9 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash
 import cv2
 from datetime import datetime
+import csv
+import io
+from flask import make_response
 
 app = Flask(__name__)
 # Professional Security: Use an environment variable or a secure fallback key
@@ -18,6 +21,11 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'waste_management.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 db = SQLAlchemy(app)
 
@@ -27,6 +35,7 @@ class Log(db.Model):
     filename = db.Column(db.String(100), nullable=False)
     prediction = db.Column(db.String(50), nullable=False)
     confidence = db.Column(db.Float, nullable=False)
+    feedback = db.Column(db.String(20), nullable=True) # 'Correct', 'Incorrect', or None
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 class User(db.Model):
@@ -104,8 +113,17 @@ with app.app_context():
         db.session.add(admin_user)
         db.session.commit()
 
-# Mapping classes (Assuming alphabetical order from TrashNet/Keras flow_from_directory)
-CLASS_LABELS = ['Cardboard', 'Glass', 'Metal', 'Paper', 'Plastic', 'Organic Material']
+# Mapping classes (Alphabetical order from TrashNet/Keras flow_from_directory)
+CLASS_LABELS = ['Cardboard', 'Glass', 'Metal', 'Paper', 'Plastic', 'Trash']
+
+RECYCLING_TIPS = {
+    'Cardboard': 'Flatten boxes to save space. Remove any plastic tape or staples.',
+    'Glass': 'Rinse containers thoroughly. Labels are usually okay to stay on.',
+    'Metal': 'Rinse cans. Crush aluminum cans to save space.',
+    'Paper': 'Keep it dry. Do not recycle paper contaminated with food (like pizza boxes).',
+    'Plastic': 'Rinse bottles. Check the recycling symbol on the bottom for local compatibility.',
+    'Trash': 'This item is non-recyclable. Dispose of it in a standard waste bin.'
+}
 
 def predict_label(img_path):
     # Using OpenCV as suggested in the FYP Proposal
@@ -140,6 +158,11 @@ def classifier():
         if file.filename == '':
             flash('No selected file')
             return redirect(request.url)
+
+        if not allowed_file(file.filename):
+            flash('Invalid file type. Please upload PNG, JPG, or JPEG images.')
+            return redirect(request.url)
+
         if file:
             # Add timestamp to filename to avoid collisions
             original_filename = secure_filename(file.filename)
@@ -155,7 +178,9 @@ def classifier():
             db.session.add(new_log)
             db.session.commit()
 
-            return render_template('classifier.html', filename=filename, label=label, confidence=f"{confidence*100:.2f}%")
+            tip = RECYCLING_TIPS.get(label, "No specific recycling tips available for this item.")
+
+            return render_template('classifier.html', filename=filename, label=label, confidence=f"{confidence*100:.2f}%", tip=tip)
 
     return render_template('classifier.html')
 
@@ -186,7 +211,49 @@ def admin_dashboard():
         return redirect(url_for('admin'))
 
     logs = Log.query.order_by(Log.timestamp.desc()).all()
-    return render_template('admin.html', logs=logs, classes=CLASS_LABELS)
+    # Convert logs to a list of dicts for JSON serialization in the template
+    logs_data = []
+    for log in logs:
+        logs_data.append({
+            'id': log.id,
+            'filename': log.filename,
+            'prediction': log.prediction,
+            'confidence': log.confidence,
+            'feedback': log.feedback,
+            'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        })
+    return render_template('admin.html', logs=logs, logs_json=logs_data, classes=CLASS_LABELS)
+
+@app.route('/admin/export_csv')
+def export_csv():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+
+    si = io.StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['ID', 'Timestamp', 'Filename', 'Prediction', 'Confidence', 'Feedback'])
+
+    logs = Log.query.all()
+    for log in logs:
+        cw.writerow([log.id, log.timestamp, log.filename, log.prediction, log.confidence, log.feedback])
+
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = "attachment; filename=classification_logs.csv"
+    output.headers["Content-type"] = "text/csv"
+    return output
+
+@app.route('/admin/feedback/<int:log_id>/<string:value>')
+def admin_feedback(log_id, value):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+
+    log = Log.query.get_or_404(log_id)
+    if value in ['Correct', 'Incorrect']:
+        log.feedback = value
+        db.session.commit()
+        flash(f'Feedback updated for log #{log_id}')
+
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/upload_dataset', methods=['POST'])
 def upload_dataset():
@@ -202,6 +269,10 @@ def upload_dataset():
 
     if file.filename == '' or not category:
         flash('No selected file or category')
+        return redirect(url_for('admin_dashboard'))
+
+    if not allowed_file(file.filename):
+        flash('Invalid file type. Please upload PNG, JPG, or JPEG images.')
         return redirect(url_for('admin_dashboard'))
 
     if file and category in CLASS_LABELS:
