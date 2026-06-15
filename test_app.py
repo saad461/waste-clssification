@@ -32,7 +32,7 @@ class WasteAppTestCase(unittest.TestCase):
     def test_classifier_page_get(self):
         response = self.app.get('/classifier')
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Upload Waste Image', response.data)
+        self.assertIn(b'Waste Classifier', response.data)
 
     def test_about_page(self):
         response = self.app.get('/about')

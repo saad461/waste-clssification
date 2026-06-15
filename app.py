@@ -8,6 +8,9 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash
 import cv2
 from datetime import datetime
+import csv
+import io
+from flask import make_response
 
 app = Flask(__name__)
 # Professional Security: Use an environment variable or a secure fallback key
@@ -113,6 +116,15 @@ with app.app_context():
 # Mapping classes (Alphabetical order from TrashNet/Keras flow_from_directory)
 CLASS_LABELS = ['Cardboard', 'Glass', 'Metal', 'Paper', 'Plastic', 'Trash']
 
+RECYCLING_TIPS = {
+    'Cardboard': 'Flatten boxes to save space. Remove any plastic tape or staples.',
+    'Glass': 'Rinse containers thoroughly. Labels are usually okay to stay on.',
+    'Metal': 'Rinse cans. Crush aluminum cans to save space.',
+    'Paper': 'Keep it dry. Do not recycle paper contaminated with food (like pizza boxes).',
+    'Plastic': 'Rinse bottles. Check the recycling symbol on the bottom for local compatibility.',
+    'Trash': 'This item is non-recyclable. Dispose of it in a standard waste bin.'
+}
+
 def predict_label(img_path):
     # Using OpenCV as suggested in the FYP Proposal
     img = cv2.imread(img_path)
@@ -166,7 +178,9 @@ def classifier():
             db.session.add(new_log)
             db.session.commit()
 
-            return render_template('classifier.html', filename=filename, label=label, confidence=f"{confidence*100:.2f}%")
+            tip = RECYCLING_TIPS.get(label, "No specific recycling tips available for this item.")
+
+            return render_template('classifier.html', filename=filename, label=label, confidence=f"{confidence*100:.2f}%", tip=tip)
 
     return render_template('classifier.html')
 
@@ -197,7 +211,36 @@ def admin_dashboard():
         return redirect(url_for('admin'))
 
     logs = Log.query.order_by(Log.timestamp.desc()).all()
-    return render_template('admin.html', logs=logs, classes=CLASS_LABELS)
+    # Convert logs to a list of dicts for JSON serialization in the template
+    logs_data = []
+    for log in logs:
+        logs_data.append({
+            'id': log.id,
+            'filename': log.filename,
+            'prediction': log.prediction,
+            'confidence': log.confidence,
+            'feedback': log.feedback,
+            'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        })
+    return render_template('admin.html', logs=logs, logs_json=logs_data, classes=CLASS_LABELS)
+
+@app.route('/admin/export_csv')
+def export_csv():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+
+    si = io.StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['ID', 'Timestamp', 'Filename', 'Prediction', 'Confidence', 'Feedback'])
+
+    logs = Log.query.all()
+    for log in logs:
+        cw.writerow([log.id, log.timestamp, log.filename, log.prediction, log.confidence, log.feedback])
+
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = "attachment; filename=classification_logs.csv"
+    output.headers["Content-type"] = "text/csv"
+    return output
 
 @app.route('/admin/feedback/<int:log_id>/<string:value>')
 def admin_feedback(log_id, value):
