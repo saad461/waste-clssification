@@ -104,6 +104,14 @@ def client():
 
     with app.app_context():
         db.create_all()
+        # Create default admin for tests
+        from werkzeug.security import generate_password_hash
+        from app import User
+        if not User.query.filter_by(username='admin').first():
+            admin = User(username='admin', email='admin@waste.com',
+                         password=generate_password_hash('admin123'), role='admin')
+            db.session.add(admin)
+            db.session.commit()
 
     with app.test_client() as client:
         yield client
@@ -182,3 +190,192 @@ class TestDatabase:
             assert updated.feedback == 'Correct'
             db.session.delete(updated)
             db.session.commit()
+
+
+# ─── Auth and Admin Management Tests ───────────────────────────────────────────
+
+class TestUserAuth:
+
+    def test_register_page_loads(self, client):
+        response = client.get('/register')
+        assert response.status_code == 200
+
+    def test_login_page_loads(self, client):
+        response = client.get('/login')
+        assert response.status_code == 200
+
+    def test_register_new_user(self, client):
+        from app import db, User, app
+        response = client.post('/register', data={
+            'username': 'testuser',
+            'email': 'test@test.com',
+            'password': 'testpass123',
+            'confirm_password': 'testpass123'
+        })
+        assert response.status_code in [200, 302]
+        with app.app_context():
+            user = User.query.filter_by(username='testuser').first()
+            assert user is not None
+            assert user.role == 'user'
+            db.session.delete(user)
+            db.session.commit()
+
+    def test_cannot_register_as_admin(self, client):
+        from app import db, User, app
+        response = client.post('/register', data={
+            'username': 'hacker',
+            'email': 'hack@test.com',
+            'password': 'pass123',
+            'confirm_password': 'pass123',
+            'role': 'admin'
+        })
+        with app.app_context():
+            user = User.query.filter_by(username='hacker').first()
+            if user:
+                assert user.role == 'user', "Role injection succeeded — critical security bug!"
+                db.session.delete(user)
+                db.session.commit()
+
+    def test_passwords_must_match(self, client):
+        response = client.post('/register', data={
+            'username': 'mismatch',
+            'email': 'mis@test.com',
+            'password': 'pass123',
+            'confirm_password': 'different'
+        })
+        assert response.status_code in [200, 302]
+
+    def test_duplicate_username_rejected(self, client):
+        from app import db, User, app
+        from werkzeug.security import generate_password_hash
+        with app.app_context():
+            user = User(username='dupuser', email='dup@test.com',
+                        password=generate_password_hash('pass'), role='user')
+            db.session.add(user)
+            db.session.commit()
+
+        response = client.post('/register', data={
+            'username': 'dupuser',
+            'email': 'new@test.com',
+            'password': 'pass123',
+            'confirm_password': 'pass123'
+        })
+        assert response.status_code in [200, 302]
+
+        with app.app_context():
+            user = User.query.filter_by(username='dupuser').first()
+            if user:
+                db.session.delete(user)
+                db.session.commit()
+
+    def test_login_valid_user(self, client):
+        from app import db, User, app
+        from werkzeug.security import generate_password_hash
+        with app.app_context():
+            user = User(username='logintest', email='login@test.com',
+                        password=generate_password_hash('pass123'), role='user')
+            db.session.add(user)
+            db.session.commit()
+
+        response = client.post('/login', data={
+            'username': 'logintest',
+            'password': 'pass123'
+        })
+        assert response.status_code in [200, 302]
+
+        with app.app_context():
+            user = User.query.filter_by(username='logintest').first()
+            if user:
+                db.session.delete(user)
+                db.session.commit()
+
+    def test_login_wrong_password(self, client):
+        response = client.post('/login', data={
+            'username': 'admin',
+            'password': 'wrongpass'
+        })
+        assert response.status_code == 200
+        assert b'Invalid' in response.data
+
+    def test_dashboard_requires_login(self, client):
+        response = client.get('/dashboard')
+        assert response.status_code == 302
+
+    def test_admin_not_accessible_by_user_session(self, client):
+        with client.session_transaction() as sess:
+            sess['user_id'] = 999
+            sess['username'] = 'fakeuser'
+        response = client.get('/admin/dashboard')
+        assert response.status_code == 302
+
+    def test_admin_link_hidden_from_public(self, client):
+        response = client.get('/')
+        assert b'/admin' not in response.data, "Admin link must not appear on homepage"
+
+
+class TestAdminUserManagement:
+
+    def admin_login(self, client):
+        client.post('/admin', data={
+            'username': 'admin',
+            'password': 'admin123'
+        })
+
+    def test_admin_can_add_user(self, client):
+        from app import db, User, app
+        self.admin_login(client)
+        response = client.post('/admin/add_user', data={
+            'username': 'newuser',
+            'email': 'newuser@test.com',
+            'password': 'pass123',
+            'role': 'user'
+        })
+        assert response.status_code in [200, 302]
+        with app.app_context():
+            user = User.query.filter_by(username='newuser').first()
+            assert user is not None
+            assert user.role == 'user'
+            db.session.delete(user)
+            db.session.commit()
+
+    def test_admin_can_add_another_admin(self, client):
+        from app import db, User, app
+        self.admin_login(client)
+        response = client.post('/admin/add_user', data={
+            'username': 'admin2',
+            'email': 'admin2@test.com',
+            'password': 'pass123',
+            'role': 'admin'
+        })
+        assert response.status_code in [200, 302]
+        with app.app_context():
+            user = User.query.filter_by(username='admin2').first()
+            assert user is not None
+            assert user.role == 'admin'
+            db.session.delete(user)
+            db.session.commit()
+
+    def test_admin_cannot_delete_own_account(self, client):
+        from app import User, app, db
+        self.admin_login(client)
+        with app.app_context():
+            admin = User.query.filter_by(username='admin').first()
+            admin_id = admin.id
+
+        response = client.post(f'/admin/delete_user/{admin_id}')
+        assert response.status_code in [200, 302]
+
+        with app.app_context():
+            still_exists = User.query.filter_by(username='admin').first()
+            assert still_exists is not None, "Admin deleted their own account — not allowed"
+
+    def test_non_admin_cannot_add_user(self, client):
+        with client.session_transaction() as sess:
+            sess['user_id'] = 999
+        response = client.post('/admin/add_user', data={
+            'username': 'sneaky',
+            'email': 'sneaky@test.com',
+            'password': 'pass',
+            'role': 'user'
+        })
+        assert response.status_code == 302

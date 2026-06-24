@@ -25,11 +25,12 @@
                     <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
                     <li class="nav-item"><a class="nav-link" href="/classifier">Classifier</a></li>
                     <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
-                    {% if session.get('logged_in') %}
-                        <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Admin</a></li>
+                    {% if session.get('user_id') %}
+                        <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
                         <li class="nav-item"><a class="nav-link text-warning" href="/logout">Logout</a></li>
                     {% else %}
-                        <li class="nav-item"><a class="nav-link" href="/admin">Admin Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
                     {% endif %}
                 </ul>
             </div>
