@@ -11,14 +11,31 @@ from datetime import datetime
 import csv
 import io
 from flask import make_response
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 # Professional Security: Use an environment variable or a secure fallback key
 app.secret_key = os.environ.get('SECRET_KEY', 'waste-classification-fyp-secure-key-78921')
 csrf = CSRFProtect(app)
-# Ensure the database is stored in the project root for easier access
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'waste_management.db')
+
+# Database Configuration (MySQL Migration)
+# Allow overriding URI for testing
+if os.environ.get('SQLALCHEMY_DATABASE_URI'):
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
+else:
+    DB_USER = os.environ.get('MYSQL_USER', 'root')
+    DB_PASSWORD = os.environ.get('MYSQL_PASSWORD', '')
+    DB_HOST = os.environ.get('MYSQL_HOST', 'localhost')
+    DB_PORT = os.environ.get('MYSQL_PORT', '3306')
+    DB_NAME = os.environ.get('MYSQL_DB', 'waste_classification')
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = (
+        f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    )
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
@@ -45,73 +62,43 @@ class User(db.Model):
 
 # Load the model robustly
 def load_waste_model():
-    """
-    Loads the trained CNN model.
-    Attempts standard loading first, falls back to manual reconstruction for cross-version compatibility.
-    """
     model_path = 'waste_model.h5'
-
     if not os.path.exists(model_path):
-        print(f"Warning: {model_path} not found. Running with an untrained model.")
-        return reconstruct_model()
+        print("ERROR: waste_model.h5 not found.")
+        return None
 
-    # Strategy 1: Attempt standard Keras loading
+    # Strategy 1: Full model load
     try:
         model = tf.keras.models.load_model(model_path)
-        print("Successfully loaded model using standard Keras loading.")
+        print("Model loaded successfully (full load).")
         return model
     except Exception as e:
-        print(f"Standard loading failed ({e}). Attempting manual reconstruction...")
+        print(f"Full load failed: {e}. Trying weight reconstruction...")
 
-    # Strategy 2: Manual reconstruction (Fallback for Keras 2/3 compatibility)
-    return reconstruct_model(model_path)
-
-def reconstruct_model(weights_path=None):
-    # Rebuild architecture as defined in the training notebook
-    base_model = tf.keras.applications.MobileNetV2(
-        input_shape=(224, 224, 3),
-        include_top=False,
-        weights='imagenet'
-    )
-    base_model.trainable = False
-
-    model = tf.keras.models.Sequential([
-        base_model,
-        tf.keras.layers.GlobalAveragePooling2D(),
-        tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dense(6, activation='softmax')
-    ])
-
-    if weights_path:
-        try:
-            import h5py
-            with h5py.File(weights_path, 'r') as f:
-                # Target the specific weight paths found in the H5 structure
-                d1_k = f['model_weights/dense/sequential/dense/kernel'][:]
-                d1_b = f['model_weights/dense/sequential/dense/bias'][:]
-                model.layers[2].set_weights([d1_k, d1_b])
-
-                d2_k = f['model_weights/dense_1/sequential/dense_1/kernel'][:]
-                d2_b = f['model_weights/dense_1/sequential/dense_1/bias'][:]
-                model.layers[3].set_weights([d2_k, d2_b])
-            print("Successfully loaded trained top-layer weights via reconstruction.")
-        except Exception as e:
-            print(f"Warning: Could not load weights manually ({e}).")
-
-    return model
+    # Strategy 2: Rebuild architecture then load weights
+    try:
+        base_model = tf.keras.applications.MobileNetV2(
+            input_shape=(224, 224, 3),
+            include_top=False,
+            weights='imagenet'
+        )
+        base_model.trainable = False
+        model = tf.keras.Sequential([
+            base_model,
+            tf.keras.layers.GlobalAveragePooling2D(),
+            tf.keras.layers.Dense(128, activation='relu'),
+            tf.keras.layers.Dropout(0.5),
+            tf.keras.layers.Dense(6, activation='softmax')
+        ])
+        model.build((None, 224, 224, 3))
+        model.load_weights(model_path, by_name=False)
+        print("Model loaded successfully (weight reconstruction).")
+        return model
+    except Exception as e2:
+        print(f"Weight reconstruction also failed: {e2}")
+        return None
 
 model = load_waste_model()
-
-# Create database tables
-with app.app_context():
-    db.create_all()
-    # Create a default admin user if it doesn't exist
-    from werkzeug.security import generate_password_hash
-    if not User.query.filter_by(username='admin').first():
-        hashed_password = generate_password_hash('admin123')
-        admin_user = User(username='admin', password=hashed_password)
-        db.session.add(admin_user)
-        db.session.commit()
 
 # Mapping classes (Alphabetical order from TrashNet/Keras flow_from_directory)
 CLASS_LABELS = ['Cardboard', 'Glass', 'Metal', 'Paper', 'Plastic', 'Trash']
@@ -132,6 +119,10 @@ def predict_label(img_path):
     img = cv2.resize(img, (224, 224))
     img_array = np.array(img) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
+
+    # Handle case where model failed to load
+    if model is None:
+        return "Model Error", 0.0
 
     predictions = model.predict(img_array)
     class_idx = np.argmax(predictions[0])
@@ -293,4 +284,18 @@ def logout():
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
+    # Create database tables and default admin on startup
+    with app.app_context():
+        try:
+            db.create_all()
+            from werkzeug.security import generate_password_hash
+            if not User.query.filter_by(username='admin').first():
+                hashed_password = generate_password_hash('admin123')
+                admin_user = User(username='admin', password=hashed_password)
+                db.session.add(admin_user)
+                db.session.commit()
+                print("Database initialized and admin user created.")
+        except Exception as e:
+            print(f"Database initialization error: {e}")
+
     app.run(debug=True, host='0.0.0.0', port=5000)
