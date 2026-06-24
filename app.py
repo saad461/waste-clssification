@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.utils import secure_filename
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 import cv2
 from datetime import datetime
 import csv
@@ -47,6 +47,14 @@ def allowed_file(filename):
 db = SQLAlchemy(app)
 
 # Database Models
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    role = db.Column(db.String(10), default='user', nullable=False)  # 'admin' or 'user'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 class Log(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(100), nullable=False)
@@ -54,11 +62,7 @@ class Log(db.Model):
     confidence = db.Column(db.Float, nullable=False)
     feedback = db.Column(db.String(20), nullable=True) # 'Correct', 'Incorrect', or None
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
 # Load the model robustly
 def load_waste_model():
@@ -139,6 +143,77 @@ def predict_label(img_path):
 def home():
     return render_template('index.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        confirm = request.form['confirm_password']
+
+        # Security: reject any role injection attempt
+        if request.form.get('role'):
+            flash('Invalid registration attempt.')
+            return redirect(url_for('register'))
+
+        if password != confirm:
+            flash('Passwords do not match.')
+            return redirect(url_for('register'))
+
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists.')
+            return redirect(url_for('register'))
+
+        if User.query.filter_by(email=email).first():
+            flash('Email already registered.')
+            return redirect(url_for('register'))
+
+        hashed = generate_password_hash(password)
+        new_user = User(
+            username=username,
+            email=email,
+            password=hashed,
+            role='user'  # ALWAYS hardcoded, never from form
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Registration successful. Please log in.')
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username, role='user').first()
+
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            session['username'] = user.username
+            return redirect(url_for('user_dashboard'))
+        else:
+            flash('Invalid credentials.')
+
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    session.pop('username', None)
+    # session.pop('logged_in', None)  # Removed as per instruction to keep separate
+    return redirect(url_for('home'))
+
+@app.route('/dashboard')
+def user_dashboard():
+    if not session.get('user_id'):
+        return redirect(url_for('login'))
+
+    logs = Log.query.filter_by(user_id=session['user_id'])\
+                    .order_by(Log.timestamp.desc()).all()
+    return render_template('user_dashboard.html', logs=logs, username=session['username'])
+
 @app.route('/classifier', methods=['GET', 'POST'])
 def classifier():
     if request.method == 'POST':
@@ -165,7 +240,12 @@ def classifier():
             label, confidence = predict_label(filepath)
 
             # Log to database
-            new_log = Log(filename=filename, prediction=label, confidence=confidence)
+            new_log = Log(
+                filename=filename,
+                prediction=label,
+                confidence=confidence,
+                user_id=session.get('user_id', None)
+            )
             db.session.add(new_log)
             db.session.commit()
 
@@ -184,25 +264,37 @@ def admin():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        user = User.query.filter_by(username=username).first()
+        user = User.query.filter_by(username=username, role='admin').first()
+
         if user and check_password_hash(user.password, password):
             session['logged_in'] = True
+            session['admin_username'] = user.username
             return redirect(url_for('admin_dashboard'))
         else:
-            flash('Invalid credentials')
+            flash('Invalid admin credentials.')
 
     if session.get('logged_in'):
         return redirect(url_for('admin_dashboard'))
 
-    return render_template('login.html')
+    return render_template('admin_login.html')
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if not session.get('logged_in'):
         return redirect(url_for('admin'))
 
+    # Summary data for dashboard
+    total_logs = Log.query.count()
+    total_users = User.query.count()
+
+    return render_template('admin_dashboard.html', total_logs=total_logs, total_users=total_users)
+
+@app.route('/admin/logs')
+def admin_logs():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+
     logs = Log.query.order_by(Log.timestamp.desc()).all()
-    # Convert logs to a list of dicts for JSON serialization in the template
     logs_data = []
     for log in logs:
         logs_data.append({
@@ -213,20 +305,80 @@ def admin_dashboard():
             'feedback': log.feedback,
             'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M:%S')
         })
-    return render_template('admin.html', logs=logs, logs_json=logs_data, classes=CLASS_LABELS)
+    return render_template('admin_logs.html', logs=logs, logs_json=logs_data, classes=CLASS_LABELS)
 
-@app.route('/admin/export_csv')
-def export_csv():
+@app.route('/admin/users')
+def admin_users():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+
+    users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('admin_users.html', users=users)
+
+@app.route('/admin/add_user', methods=['POST'])
+def admin_add_user():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+
+    username = request.form['username']
+    email = request.form['email']
+    password = request.form['password']
+    role = request.form.get('role', 'user')
+
+    # Only allow valid roles
+    if role not in ['admin', 'user']:
+        flash('Invalid role specified.')
+        return redirect(url_for('admin_users'))
+
+    if User.query.filter_by(username=username).first():
+        flash(f'Username {username} already exists.')
+        return redirect(url_for('admin_users'))
+
+    if User.query.filter_by(email=email).first():
+        flash(f'Email {email} already registered.')
+        return redirect(url_for('admin_users'))
+
+    hashed = generate_password_hash(password)
+    new_user = User(
+        username=username,
+        email=email,
+        password=hashed,
+        role=role
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    flash(f'{role.capitalize()} account "{username}" created successfully.')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+def admin_delete_user(user_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+
+    user = User.query.get_or_404(user_id)
+
+    # Prevent admin from deleting their own account
+    if user.username == session.get('admin_username'):
+        flash('You cannot delete your own admin account.')
+        return redirect(url_for('admin_users'))
+
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'User "{user.username}" deleted successfully.')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/export')
+def admin_export():
     if not session.get('logged_in'):
         return redirect(url_for('admin'))
 
     si = io.StringIO()
     cw = csv.writer(si)
-    cw.writerow(['ID', 'Timestamp', 'Filename', 'Prediction', 'Confidence', 'Feedback'])
+    cw.writerow(['ID', 'Timestamp', 'Filename', 'Prediction', 'Confidence', 'Feedback', 'User ID'])
 
     logs = Log.query.all()
     for log in logs:
-        cw.writerow([log.id, log.timestamp, log.filename, log.prediction, log.confidence, log.feedback])
+        cw.writerow([log.id, log.timestamp, log.filename, log.prediction, log.confidence, log.feedback, log.user_id])
 
     output = make_response(si.getvalue())
     output.headers["Content-Disposition"] = "attachment; filename=classification_logs.csv"
@@ -244,7 +396,7 @@ def admin_feedback(log_id, value):
         db.session.commit()
         flash(f'Feedback updated for log #{log_id}')
 
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_logs'))
 
 @app.route('/admin/upload_dataset', methods=['POST'])
 def upload_dataset():
@@ -253,18 +405,18 @@ def upload_dataset():
 
     if 'file' not in request.files:
         flash('No file part')
-        return redirect(url_for('admin_dashboard'))
+        return redirect(url_for('admin_logs'))
 
     file = request.files['file']
     category = request.form.get('category')
 
     if file.filename == '' or not category:
         flash('No selected file or category')
-        return redirect(url_for('admin_dashboard'))
+        return redirect(url_for('admin_logs'))
 
     if not allowed_file(file.filename):
         flash('Invalid file type. Please upload PNG, JPG, or JPEG images.')
-        return redirect(url_for('admin_dashboard'))
+        return redirect(url_for('admin_logs'))
 
     if file and category in CLASS_LABELS:
         filename = secure_filename(file.filename)
@@ -276,22 +428,27 @@ def upload_dataset():
         file.save(os.path.join(category_path, filename))
         flash(f'Successfully uploaded {filename} to {category}')
 
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_logs'))
 
-@app.route('/logout')
-def logout():
+@app.route('/admin/logout')
+def admin_logout():
     session.pop('logged_in', None)
-    return redirect(url_for('home'))
+    session.pop('admin_username', None)
+    return redirect(url_for('admin'))
 
 if __name__ == '__main__':
     # Create database tables and default admin on startup
     with app.app_context():
         try:
             db.create_all()
-            from werkzeug.security import generate_password_hash
             if not User.query.filter_by(username='admin').first():
                 hashed_password = generate_password_hash('admin123')
-                admin_user = User(username='admin', password=hashed_password)
+                admin_user = User(
+                    username='admin',
+                    email='admin@waste.com',
+                    password=hashed_password,
+                    role='admin'
+                )
                 db.session.add(admin_user)
                 db.session.commit()
                 print("Database initialized and admin user created.")
