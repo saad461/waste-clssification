@@ -105,11 +105,10 @@ def client():
     with app.app_context():
         db.create_all()
         # Create default admin for tests
-        from werkzeug.security import generate_password_hash
         from app import User
         if not User.query.filter_by(username='admin').first():
             admin = User(username='admin', email='admin@waste.com',
-                         password=generate_password_hash('admin123'), role='admin')
+                         password='admin123', role='admin')
             db.session.add(admin)
             db.session.commit()
 
@@ -247,10 +246,9 @@ class TestUserAuth:
 
     def test_duplicate_username_rejected(self, client):
         from app import db, User, app
-        from werkzeug.security import generate_password_hash
         with app.app_context():
             user = User(username='dupuser', email='dup@test.com',
-                        password=generate_password_hash('pass'), role='user')
+                        password='pass', role='user')
             db.session.add(user)
             db.session.commit()
 
@@ -270,10 +268,9 @@ class TestUserAuth:
 
     def test_login_valid_user(self, client):
         from app import db, User, app
-        from werkzeug.security import generate_password_hash
         with app.app_context():
             user = User(username='logintest', email='login@test.com',
-                        password=generate_password_hash('pass123'), role='user')
+                        password='pass123', role='user')
             db.session.add(user)
             db.session.commit()
 

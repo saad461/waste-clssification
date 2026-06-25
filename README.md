@@ -19,11 +19,13 @@ Follow these steps to run the project on your local computer:
 Ensure you have **Python 3.8 or higher** installed on your system.
 You also need **XAMPP** installed for the MySQL database.
 
-### 2. MySQL Database Setup (via XAMPP)
-1. Download and install XAMPP from https://www.apachefriends.org
-2. Open XAMPP Control Panel and start the **MySQL** module (and Apache if needed).
-3. MySQL will be running at `localhost:3306`.
-4. The system will automatically create the `waste_classification` database when you run the initialization script.
+### 2. Database Setup:
+1. Open XAMPP Control Panel and start MySQL
+2. Go to http://localhost/phpmyadmin
+3. Click Import tab
+4. Select database.sql from the project root
+5. Click Go
+6. Database is ready — run python app.py
 
 ### 3. Clone or Extract the Project
 Extract the project files into a folder of your choice. Open your terminal or command prompt in that folder.
@@ -52,13 +54,7 @@ pip install -r requirements.txt
    - `MYSQL_HOST=localhost`
    - `MYSQL_DB=waste_classification`
 
-### 7. Initialize the Database
-Before running the app for the first time, initialize the database to create the tables and the default admin account:
-```bash
-python init_db.py
-```
-
-### 8. Run the Application
+### 7. Run the Application
 Start the Flask development server:
 ```bash
 python app.py
@@ -67,17 +63,9 @@ The application will be available at: **`http://127.0.0.1:5000`**
 
 ---
 
-## 🔐 Admin Access
-To access the admin panel for monitoring and dataset management:
-- **URL:** `http://127.0.0.1:5000/admin`
-- **Username:** `admin`
-- **Password:** `admin123`
-
----
-
 ## 📂 Project Structure
 - `app.py`: The main Flask backend handles routing, database, and model inference.
-- `init_db.py`: Database setup script to create the MySQL database, tables and admin user.
+- `database.sql`: SQL script to manually set up the MySQL database and tables.
 - `.env`: Environment variables for database and security (You must create this).
 - `static/dataset/`: Organized folder structure for the training dataset.
 - `waste_model.h5`: The trained weights for the CNN model.
