@@ -5,7 +5,6 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.utils import secure_filename
-from werkzeug.security import check_password_hash, generate_password_hash
 import cv2
 from datetime import datetime
 import csv
@@ -168,11 +167,10 @@ def register():
             flash('Email already registered.')
             return redirect(url_for('register'))
 
-        hashed = generate_password_hash(password)
         new_user = User(
             username=username,
             email=email,
-            password=hashed,
+            password=password,
             role='user'  # ALWAYS hardcoded, never from form
         )
         db.session.add(new_user)
@@ -189,7 +187,7 @@ def login():
         password = request.form['password']
         user = User.query.filter_by(username=username, role='user').first()
 
-        if user and check_password_hash(user.password, password):
+        if user and user.password == password:
             session['user_id'] = user.id
             session['username'] = user.username
             return redirect(url_for('user_dashboard'))
@@ -202,7 +200,6 @@ def login():
 def logout():
     session.pop('user_id', None)
     session.pop('username', None)
-    # session.pop('logged_in', None)  # Removed as per instruction to keep separate
     return redirect(url_for('home'))
 
 @app.route('/dashboard')
@@ -266,7 +263,7 @@ def admin():
         password = request.form['password']
         user = User.query.filter_by(username=username, role='admin').first()
 
-        if user and check_password_hash(user.password, password):
+        if user and user.password == password:
             session['logged_in'] = True
             session['admin_username'] = user.username
             return redirect(url_for('admin_dashboard'))
@@ -338,11 +335,10 @@ def admin_add_user():
         flash(f'Email {email} already registered.')
         return redirect(url_for('admin_users'))
 
-    hashed = generate_password_hash(password)
     new_user = User(
         username=username,
         email=email,
-        password=hashed,
+        password=password,
         role=role
     )
     db.session.add(new_user)
@@ -437,22 +433,4 @@ def admin_logout():
     return redirect(url_for('admin'))
 
 if __name__ == '__main__':
-    # Create database tables and default admin on startup
-    with app.app_context():
-        try:
-            db.create_all()
-            if not User.query.filter_by(username='admin').first():
-                hashed_password = generate_password_hash('admin123')
-                admin_user = User(
-                    username='admin',
-                    email='admin@waste.com',
-                    password=hashed_password,
-                    role='admin'
-                )
-                db.session.add(admin_user)
-                db.session.commit()
-                print("Database initialized and admin user created.")
-        except Exception as e:
-            print(f"Database initialization error: {e}")
-
     app.run(debug=True, host='0.0.0.0', port=5000)
