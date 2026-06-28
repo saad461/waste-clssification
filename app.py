@@ -125,18 +125,20 @@ def predict_label(img_path):
 
     # Handle case where model failed to load
     if model is None:
-        return "Model Error", 0.0
+        return "Model Error", 0.0, {}
 
-    predictions = model.predict(img_array)
-    class_idx = np.argmax(predictions[0])
-    confidence = float(np.max(predictions[0]))
+    predictions = model.predict(img_array)[0]
+    class_idx = np.argmax(predictions)
+    confidence = float(np.max(predictions))
+
+    all_scores = {CLASS_LABELS[i]: float(predictions[i]) for i in range(len(CLASS_LABELS))}
 
     # Threshold to handle non-waste or unrecognized objects (FYP Proposal: Edge Cases)
     CONFIDENCE_THRESHOLD = 0.5
     if confidence < CONFIDENCE_THRESHOLD:
-        return "Unrecognized", confidence
+        return "Unrecognized", confidence, all_scores
 
-    return CLASS_LABELS[class_idx], confidence
+    return CLASS_LABELS[class_idx], confidence, all_scores
 
 @app.route('/')
 def home():
@@ -234,7 +236,7 @@ def classifier():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
 
-            label, confidence = predict_label(filepath)
+            label, confidence, all_scores = predict_label(filepath)
 
             # Log to database
             new_log = Log(
@@ -248,7 +250,8 @@ def classifier():
 
             tip = RECYCLING_TIPS.get(label, "No specific recycling tips available for this item.")
 
-            return render_template('classifier.html', filename=filename, label=label, confidence=f"{confidence*100:.2f}%", tip=tip)
+            return render_template('classifier.html', filename=filename, label=label,
+                                   confidence=f"{confidence*100:.2f}%", tip=tip, all_scores=all_scores)
 
     return render_template('classifier.html')
 
