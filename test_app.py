@@ -69,27 +69,28 @@ class TestPredictFunction:
         if os.path.exists(self.test_image_path):
             os.remove(self.test_image_path)
 
-    def test_predict_returns_string_and_float(self):
+    def test_predict_returns_correct_types(self):
         from app import predict_label
-        label, confidence = predict_label(self.test_image_path)
+        label, confidence, all_scores = predict_label(self.test_image_path)
         assert isinstance(label, str), "Label should be a string"
         assert isinstance(confidence, float), "Confidence should be a float"
+        assert isinstance(all_scores, dict), "all_scores should be a dictionary"
 
     def test_predict_confidence_between_0_and_1(self):
         from app import predict_label
-        label, confidence = predict_label(self.test_image_path)
+        label, confidence, all_scores = predict_label(self.test_image_path)
         assert 0.0 <= confidence <= 1.0, f"Confidence out of range: {confidence}"
 
     def test_predict_label_is_valid_or_unrecognized(self):
         from app import predict_label, CLASS_LABELS
-        label, confidence = predict_label(self.test_image_path)
+        label, confidence, all_scores = predict_label(self.test_image_path)
         valid = CLASS_LABELS + ['Unrecognized']
         assert label in valid, f"Unexpected label returned: {label}"
 
     def test_predict_low_confidence_returns_unrecognized(self):
         """A blank grey image should score low and return Unrecognized."""
         from app import predict_label
-        label, confidence = predict_label(self.test_image_path)
+        label, confidence, all_scores = predict_label(self.test_image_path)
         if confidence < 0.5:
             assert label == 'Unrecognized', "Low confidence should return Unrecognized"
 
