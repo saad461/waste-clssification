@@ -12,3 +12,4 @@ pytest
 h5py
 matplotlib
 seaborn
+scikit-learn

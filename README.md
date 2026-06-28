@@ -91,5 +91,5 @@ If you upload many new images via the Admin Panel and want to improve the model:
 - **Architecture:** MobileNetV2 (Transfer Learning)
 
 ---
-**Developed by:** [Your Name]
+**Developed by:** Saad Nadeem
 **Supervisor:** Iqra Iqbal Khan
