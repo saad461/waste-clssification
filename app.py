@@ -11,6 +11,7 @@ import csv
 import io
 from flask import make_response
 from dotenv import load_dotenv
+from tensorflow.keras.applications.efficientnet import preprocess_input
 
 # Load environment variables
 load_dotenv()
@@ -78,22 +79,34 @@ def load_waste_model():
     except Exception as e:
         print(f"Full load failed: {e}. Trying weight reconstruction...")
 
-    # Strategy 2: Rebuild architecture then load weights
+    # Strategy 2: Rebuild architecture then load weights (Match EfficientNetB3 from notebook)
     try:
-        base_model = tf.keras.applications.MobileNetV2(
-            input_shape=(224, 224, 3),
+        base_model = tf.keras.applications.EfficientNetB3(
+            input_shape=(300, 300, 3),
             include_top=False,
             weights='imagenet'
         )
         base_model.trainable = False
+
         model = tf.keras.Sequential([
             base_model,
             tf.keras.layers.GlobalAveragePooling2D(),
-            tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dropout(0.5),
+            tf.keras.layers.Dense(
+                512, activation='relu',
+                kernel_regularizer=tf.keras.regularizers.l2(0.0005)
+            ),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.Dropout(0.4),
+            tf.keras.layers.Dense(
+                256, activation='relu',
+                kernel_regularizer=tf.keras.regularizers.l2(0.0005)
+            ),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.Dropout(0.3),
             tf.keras.layers.Dense(6, activation='softmax')
         ])
-        model.build((None, 224, 224, 3))
+
+        model.build((None, 300, 300, 3))
         model.load_weights(model_path, by_name=False)
         print("Model loaded successfully (weight reconstruction).")
         return model
@@ -119,9 +132,12 @@ def predict_label(img_path):
     # Using OpenCV as suggested in the FYP Proposal
     img = cv2.imread(img_path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = cv2.resize(img, (224, 224))
-    img_array = np.array(img) / 255.0
+    # Resize to 300x300 as expected by the EfficientNetB3 model
+    img = cv2.resize(img, (300, 300))
+    img_array = np.array(img)
     img_array = np.expand_dims(img_array, axis=0)
+    # Use EfficientNet preprocessing instead of manual / 255.0
+    img_array = preprocess_input(img_array)
 
     # Handle case where model failed to load
     if model is None:
