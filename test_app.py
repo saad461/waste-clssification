@@ -46,7 +46,7 @@ class TestClassLabels:
 
     def test_class_labels_alphabetical(self):
         from app import CLASS_LABELS
-        expected = ['Cardboard', 'Glass', 'Metal', 'Paper', 'Plastic', 'Trash']
+        expected = ['cardboard', 'glass', 'metal', 'paper', 'plastic', 'trash']
         assert CLASS_LABELS == expected, f"Labels mismatch. Got: {CLASS_LABELS}"
 
     def test_recycling_tips_match_labels(self):
@@ -168,12 +168,12 @@ class TestDatabase:
     def test_log_entry_created(self, client):
         from app import db, Log, app
         with app.app_context():
-            log = Log(filename='test.jpg', prediction='Plastic', confidence=0.91)
+            log = Log(filename='test.jpg', prediction='plastic', confidence=0.91)
             db.session.add(log)
             db.session.commit()
             entry = Log.query.filter_by(filename='test.jpg').first()
             assert entry is not None
-            assert entry.prediction == 'Plastic'
+            assert entry.prediction == 'plastic'
             assert entry.confidence == pytest.approx(0.91)
             db.session.delete(entry)
             db.session.commit()
@@ -181,7 +181,7 @@ class TestDatabase:
     def test_log_feedback_update(self, client):
         from app import db, Log, app
         with app.app_context():
-            log = Log(filename='feedback_test.jpg', prediction='Metal', confidence=0.85)
+            log = Log(filename='feedback_test.jpg', prediction='metal', confidence=0.85)
             db.session.add(log)
             db.session.commit()
             log.feedback = 'Correct'
