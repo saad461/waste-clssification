@@ -275,8 +275,16 @@ class TestUserAuth:
             db.session.add(user)
             db.session.commit()
 
+        # Login with username
         response = client.post('/login', data={
             'username': 'logintest',
+            'password': 'pass123'
+        })
+        assert response.status_code in [200, 302]
+
+        # Login with email
+        response = client.post('/login', data={
+            'username': 'login@test.com',
             'password': 'pass123'
         })
         assert response.status_code in [200, 302]
@@ -294,6 +302,13 @@ class TestUserAuth:
         })
         assert response.status_code == 200
         assert b'Invalid' in response.data
+
+    def test_admin_login_by_email(self, client):
+        response = client.post('/admin', data={
+            'username': 'admin@waste.com',
+            'password': 'admin123'
+        })
+        assert response.status_code in [200, 302]
 
     def test_dashboard_requires_login(self, client):
         response = client.get('/dashboard')

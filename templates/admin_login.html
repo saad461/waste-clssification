@@ -9,10 +9,10 @@
                 <form method="POST" action="{{ url_for('admin') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
-                        <label for="username" class="form-label">Admin Username</label>
+                        <label for="username" class="form-label">Admin Username or Email</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-user-shield"></i></span>
-                            <input type="text" class="form-control" id="username" name="username" required>
+                            <input type="text" class="form-control" id="username" name="username" placeholder="Enter admin username or email" required>
                         </div>
                     </div>
                     <div class="mb-4">
