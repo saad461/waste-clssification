@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import or_
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.utils import secure_filename
 import cv2
@@ -201,9 +202,12 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        identifier = request.form['username']
         password = request.form['password']
-        user = User.query.filter_by(username=username, role='user').first()
+        user = User.query.filter(
+            or_(User.username == identifier, User.email == identifier),
+            User.role == 'user'
+        ).first()
 
         if user and user.password == password:
             session['user_id'] = user.id
@@ -278,9 +282,12 @@ def about():
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     if request.method == 'POST':
-        username = request.form['username']
+        identifier = request.form['username']
         password = request.form['password']
-        user = User.query.filter_by(username=username, role='admin').first()
+        user = User.query.filter(
+            or_(User.username == identifier, User.email == identifier),
+            User.role == 'admin'
+        ).first()
 
         if user and user.password == password:
             session['logged_in'] = True
