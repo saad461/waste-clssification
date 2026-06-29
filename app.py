@@ -104,15 +104,15 @@ def load_waste_model():
 model = load_waste_model()
 
 # Mapping classes (Alphabetical order from TrashNet/Keras flow_from_directory)
-CLASS_LABELS = ['Cardboard', 'Glass', 'Metal', 'Paper', 'Plastic', 'Trash']
+CLASS_LABELS = ['cardboard', 'glass', 'metal', 'paper', 'plastic', 'trash']
 
 RECYCLING_TIPS = {
-    'Cardboard': 'Flatten boxes to save space. Remove any plastic tape or staples.',
-    'Glass': 'Rinse containers thoroughly. Labels are usually okay to stay on.',
-    'Metal': 'Rinse cans. Crush aluminum cans to save space.',
-    'Paper': 'Keep it dry. Do not recycle paper contaminated with food (like pizza boxes).',
-    'Plastic': 'Rinse bottles. Check the recycling symbol on the bottom for local compatibility.',
-    'Trash': 'This item is non-recyclable. Dispose of it in a standard waste bin.'
+    'cardboard': 'Flatten boxes to save space. Remove any plastic tape or staples.',
+    'glass': 'Rinse containers thoroughly. Labels are usually okay to stay on.',
+    'metal': 'Rinse cans. Crush aluminum cans to save space.',
+    'paper': 'Keep it dry. Do not recycle paper contaminated with food (like pizza boxes).',
+    'plastic': 'Rinse bottles. Check the recycling symbol on the bottom for local compatibility.',
+    'trash': 'This item is non-recyclable. Dispose of it in a standard waste bin.'
 }
 
 def predict_label(img_path):
