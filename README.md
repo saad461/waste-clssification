@@ -1,6 +1,6 @@
 # Waste Classification (FYP Project)
 
-This project is an automated Waste Classification System developed for a Final Year Project (FYP). It uses a Convolutional Neural Network (CNN) based on the **MobileNetV2** architecture to classify waste into six categories: Cardboard, Glass, Metal, Paper, Plastic, and Organic Material.
+This project is an automated Waste Classification System developed for a Final Year Project (FYP). It uses a Convolutional Neural Network (CNN) based on the **EfficientNetB3** architecture to classify waste into six categories: Cardboard, Glass, Metal, Paper, Plastic, and Trash.
 
 ## Features
 - **Real-time Classification:** Upload an image and get instant prediction with a confidence score.
@@ -86,9 +86,9 @@ If you upload many new images via the Admin Panel and want to improve the model:
 ---
 
 ## 📈 Model Performance
-- **Training Accuracy:** 96.7%
-- **Validation Accuracy:** 76.7%
-- **Architecture:** MobileNetV2 (Transfer Learning)
+- **Test Accuracy:** 95.8%
+- **Validation Accuracy:** 96.9%
+- **Architecture:** EfficientNetB3 (Transfer Learning)
 
 ---
 **Developed by:** Saad Nadeem
