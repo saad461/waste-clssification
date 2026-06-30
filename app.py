@@ -12,7 +12,9 @@ import csv
 import io
 from flask import make_response
 from dotenv import load_dotenv
-from tensorflow.keras.applications.efficientnet import preprocess_input
+
+# Import preprocess_input from keras to satisfy IDE linters
+from keras.applications.efficientnet import preprocess_input
 
 # Load environment variables
 load_dotenv()
