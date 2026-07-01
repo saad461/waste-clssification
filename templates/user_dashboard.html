@@ -30,7 +30,11 @@
                                 <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                                 <td>
                                     <a href="{{ url_for('static', filename='uploads/' + log.filename) }}" target="_blank" class="text-decoration-none">
-                                        <i class="fas fa-image me-1"></i> {{ log.filename }}
+                                        <img src="{{ url_for('static', filename='uploads/' + log.filename) }}"
+                                             alt="Log Image"
+                                             class="img-thumbnail"
+                                             style="width: 50px; height: 50px; object-fit: cover;">
+                                        <div class="small text-muted mt-1">{{ log.filename[:15] }}...</div>
                                     </a>
                                 </td>
                                 <td>

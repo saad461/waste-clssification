@@ -61,8 +61,12 @@
                         <td>{{ log.id }}</td>
                         <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                         <td>
-                            <a href="{{ url_for('static', filename='uploads/' + log.filename) }}" target="_blank">
-                                <i class="fas fa-image"></i> {{ log.filename[:20] }}...
+                            <a href="{{ url_for('static', filename='uploads/' + log.filename) }}" target="_blank" class="text-decoration-none">
+                                <img src="{{ url_for('static', filename='uploads/' + log.filename) }}"
+                                     alt="Log Image"
+                                     class="img-thumbnail"
+                                     style="width: 50px; height: 50px; object-fit: cover;">
+                                <div class="small text-muted mt-1">{{ log.filename[:15] }}...</div>
                             </a>
                         </td>
                         <td><span class="badge bg-info text-dark">{{ log.prediction }}</span></td>
@@ -110,11 +114,14 @@
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="logs-data" type="application/json">{{ logs_json|tojson|safe }}</script>
+<script id="classes-data" type="application/json">{{ classes|tojson|safe }}</script>
 <script>
-    const logsData = {{ logs_json|tojson }};
-    const classes = {{ classes|tojson }};
+    (function() {
+        const logsData = JSON.parse(document.getElementById('logs-data').textContent);
+        const classes = JSON.parse(document.getElementById('classes-data').textContent);
 
-    const counts = {};
+        const counts = {};
     classes.forEach(c => counts[c] = 0);
     logsData.forEach(log => {
         if (counts.hasOwnProperty(log.prediction)) {
@@ -122,39 +129,40 @@
         }
     });
 
-    const ctx = document.getElementById('wasteChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: classes,
-            datasets: [{
-                label: '# of Classifications',
-                data: classes.map(c => counts[c]),
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.5)',
-                    'rgba(54, 162, 235, 0.5)',
-                    'rgba(255, 206, 86, 0.5)',
-                    'rgba(75, 192, 192, 0.5)',
-                    'rgba(153, 102, 255, 0.5)',
-                    'rgba(255, 159, 64, 0.5)'
-                ],
-                borderColor: [
-                    'rgba(255, 99, 132, 1)',
-                    'rgba(54, 162, 235, 1)',
-                    'rgba(255, 206, 86, 1)',
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(153, 102, 255, 1)',
-                    'rgba(255, 159, 64, 1)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+        const ctx = document.getElementById('wasteChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: classes,
+                datasets: [{
+                    label: '# of Classifications',
+                    data: classes.map(c => counts[c]),
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(54, 162, 235, 0.5)',
+                        'rgba(255, 206, 86, 0.5)',
+                        'rgba(75, 192, 192, 0.5)',
+                        'rgba(153, 102, 255, 0.5)',
+                        'rgba(255, 159, 64, 0.5)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
             }
-        }
-    });
+        });
+    })();
 </script>
 {% endblock %}
